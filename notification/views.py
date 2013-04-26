@@ -9,6 +9,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from notification.models import *
 from notification.decorators import basic_auth_required, simple_basic_auth_callback
 from notification.feeds import NoticeUserFeed
+from django.http.response import HttpResponse
 
 
 @basic_auth_required(realm='Notices Feed', callback_func=simple_basic_auth_callback)
@@ -23,7 +24,7 @@ def feed_for_user(request):
 
 
 @login_required
-def notices(request, template_name="notification/notices.html", extra_context=None):
+def notices(request, template_name="notification/notices.html", extra_context=None, archived=False, unseen=None):
     """
     The main notices index view.
     
@@ -35,7 +36,7 @@ def notices(request, template_name="notification/notices.html", extra_context=No
             A list of :model:`notification.Notice` objects that are not archived
             and to be displayed on the site.
     """
-    notices = Notice.objects.notices_for(request.user, on_site=True)
+    notices = Notice.objects.notices_for(request.user, on_site=True, archived=archived, unseen=unseen)
     paginator = Paginator(notices, 15)
 
     page = request.GET.get('page')
@@ -45,7 +46,11 @@ def notices(request, template_name="notification/notices.html", extra_context=No
         notices = paginator.page(1)
     except EmptyPage:
         notices = paginator.page(paginator.num_pages)
-    context = {"notices": notices,}
+    context = {
+        "notices": notices,
+        "archived": archived,
+        "unseen": unseen
+    }
     if extra_context:
         context.update(extra_context)
     return render_to_response(
@@ -122,7 +127,7 @@ def single(request, id, mark_seen=True):
             already.  Do nothing if ``False``.  Default: ``True``.
     """
     notice = get_object_or_404(Notice, id=id)
-    if request.user == notice.recipient:
+    if notice.recipient == request.user: # Ensure Model.__eq__ checks if request.user isinstance notice.recipient 
         if mark_seen and notice.unseen:
             notice.unseen = False
             notice.save()
@@ -199,3 +204,18 @@ def mark_all_seen(request):
         notice.unseen = False
         notice.save()
     return HttpResponseRedirect(reverse("notification_notices"))
+
+@login_required
+def mark_seen(request, id):
+    """
+    Mark all unseen notices for the requesting user as seen.  Returns a
+    ``HttpResponseRedirect`` when complete. 
+    """
+    notice = get_object_or_404(Notice, id=id)
+    if notice.recipient == request.user: # Ensure Model.__eq__ checks if request.user isinstance notice.recipient 
+        if mark_seen and notice.unseen:
+            notice.unseen = False
+            notice.save()
+        return HttpResponse()
+        return HttpResponseRedirect(reverse("notification_notices"))
+    raise Http404
