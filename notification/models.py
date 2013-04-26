@@ -39,9 +39,18 @@ class LanguageStoreNotAvailable(Exception):
     pass
 
 
+class NoticeLevel(models.Model):
+    title = models.CharField(max_length=64)
+    slug = models.SlugField(max_length=32)
+    description = models.TextField(_('description'))
+    
+    def __unicode__(self):
+        return self.title
+
 class NoticeType(models.Model):
     label = models.CharField(_('label'), max_length=40, unique=True)
     display = models.CharField(_('display'), max_length=100)
+    level = models.ForeignKey(NoticeLevel, null=True, blank=True)
     description = models.TextField(_('description'))
     slug = models.CharField(_('template folder slug'), max_length=40, blank=True)
 
@@ -49,7 +58,7 @@ class NoticeType(models.Model):
     default = models.IntegerField(_('default'))
 
     def __unicode__(self):
-        return self.label
+        return self.display
 
     class Meta:
         verbose_name = _("notice type")
@@ -58,7 +67,6 @@ class NoticeType(models.Model):
     @property
     def template_slug(self):
         return self.slug or self.label
-
 
 class NoticeMediaListChoices():
     """
@@ -186,14 +194,14 @@ class NoticeManager(models.Manager):
 
 class Notice(models.Model):
     recipient = models.ForeignKey(USER_MODEL, related_name="recieved_notices", verbose_name=_("recipient"))
-    sender = models.ForeignKey(USER_MODEL, null=True, related_name="sent_notices", verbose_name=_("sender"))
+    sender = models.ForeignKey(USER_MODEL, null=True, related_name="sent_notices", verbose_name=_("sender"), blank=True)
     message = models.TextField(_('message'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     added = models.DateTimeField(_('added'), auto_now_add=True)
     unseen = models.BooleanField(_('unseen'), default=True)
     archived = models.BooleanField(_('archived'), default=False)
     on_site = models.BooleanField(_('on site'))
-    related_object_id = models.IntegerField(_('related object'), null=True)
+    related_object_id = models.IntegerField(_('related object'), null=True, blank=True)
 
     objects = NoticeManager()
 

@@ -1,8 +1,11 @@
 from django.contrib import admin
-from notification.models import NoticeType, NoticeSetting, Notice, ObservedItem, NoticeQueueBatch
+from notification.models import NoticeType, NoticeSetting, Notice, ObservedItem, NoticeQueueBatch, NoticeLevel
+
+class NoticeLevelAdmin(admin.ModelAdmin):
+    list_display = ('title', 'slug', 'description')
 
 class NoticeTypeAdmin(admin.ModelAdmin):
-    list_display = ('label', 'display', 'description', 'default')
+    list_display = ('label', 'display', 'level', 'description', 'default')
 
 class NoticeSettingAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'notice_type', 'medium', 'send')
@@ -10,6 +13,7 @@ class NoticeSettingAdmin(admin.ModelAdmin):
 class NoticeAdmin(admin.ModelAdmin):
     list_display = ('message', 'recipient', 'sender', 'notice_type', 'added', 'unseen', 'archived')
 
+admin.site.register(NoticeLevel, NoticeLevelAdmin)
 admin.site.register(NoticeQueueBatch)
 admin.site.register(NoticeType, NoticeTypeAdmin)
 admin.site.register(NoticeSetting, NoticeSettingAdmin)
