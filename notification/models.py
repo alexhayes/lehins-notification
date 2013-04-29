@@ -23,6 +23,8 @@ from django.utils.translation import ugettext, get_language, activate
 
 from notification.backends import get_backends, get_backend
 
+from django.contrib.auth.models import Group as AuthGroup
+
 """
     subject.txt and message.txt can be put either in notification/noticetype_label/media_slug or notification/noticetype_label/
     or notification/
@@ -245,6 +247,15 @@ class NoticeQueueBatch(models.Model):
     """
     pickled_data = models.TextField()
 
+class Group(AuthGroup):
+    """
+    Defines groups of users who should also receive particular notifications not directly sent to them.
+    
+    Kind of equivilent a cc list of users... kind of...
+    """
+    slug = models.SlugField(max_length=64)
+    description = models.TextField()
+    notice_types = models.ManyToManyField(NoticeType, related_name='groups', help_text='The notice types that this group should receive.')
 
 def create_notice_type(label, display, description, default=2, verbosity=1, slug=''):
     """
@@ -327,7 +338,7 @@ def get_formatted_message(formats, notice_type, context, media_slug=None):
             'notification/%s' % format), context_instance=context)
     return format_templates
 
-def send_now(users, label, extra_context=None, on_site=None, sender=None, related_object_id=None):
+def send_now(users, label, extra_context=None, on_site=None, sender=None, related_object_id=None, groups=True):
     """
     Creates a new notice.
 
@@ -350,6 +361,11 @@ def send_now(users, label, extra_context=None, on_site=None, sender=None, relate
     current_site = Site.objects.get_current()
 
     current_language = get_language()
+
+    if groups:
+        # Only send to groups if groups is True
+        for group in notice_type.groups.all():
+            users = users | group.user_set.all()
 
     for user in users:
         # get user language for user from language store defined in
@@ -439,6 +455,11 @@ def queue(users, label, extra_context=None, on_site=True, sender=None, related_o
         users = [row["pk"] for row in users.values("pk")]
     else:
         users = [user.pk for user in users]
+        
+    notice_type = NoticeType.objects.get(label=label)
+    for group in notice_type.groups.all():
+        users = users | group.user_set.all()
+
     notices = []
     for user in users:
         notices.append(
