@@ -365,7 +365,10 @@ def send_now(users, label, extra_context=None, on_site=None, sender=None, relate
     if groups:
         # Only send to groups if groups is True
         for group in notice_type.groups.all():
-            users = users | group.user_set.all()
+            if isinstance(users, QuerySet):
+                users = users | group.user_set.all()
+            else:
+                users += group.user_set.all()
 
     for user in users:
         # get user language for user from language store defined in
@@ -458,7 +461,10 @@ def queue(users, label, extra_context=None, on_site=True, sender=None, related_o
         
     notice_type = NoticeType.objects.get(label=label)
     for group in notice_type.groups.all():
-        users = users | group.user_set.all()
+        if isinstance(users, QuerySet):
+            users = users | group.user_set.all()
+        else:
+            users += group.user_set.all()
 
     notices = []
     for user in users:
