@@ -70,6 +70,7 @@ class NoticeType(models.Model):
     def template_slug(self):
         return self.slug or self.label
 
+
 class NoticeMediaListChoices():
     """
         Iterator used to delay getting the NoticeSetting medium choices list until required
@@ -338,7 +339,7 @@ def get_formatted_message(formats, notice_type, context, media_slug=None):
             'notification/%s' % format), context_instance=context)
     return format_templates
 
-def send_now(users, label, extra_context=None, on_site=None, sender=None, related_object_id=None, groups=True):
+def send_now(users, label, extra_context=None, on_site=None, sender=None, related_object_id=None, groups=True, backends=get_backends()):
     """
     Creates a new notice.
 
@@ -400,7 +401,10 @@ def send_now(users, label, extra_context=None, on_site=None, sender=None, relate
             recipient=user, message=messages['notice.html'], notice_type=notice_type,
             on_site=on_site, sender=sender, related_object_id=related_object_id)
 
-        for backend in get_backends():
+        if len(backends) > 0 and isinstance(backends[0], str):
+            backends = get_backends(backends)
+
+        for backend in backends:
             send_user_notification(user, notice_type, backend, context)
 
     # reset environment to original language

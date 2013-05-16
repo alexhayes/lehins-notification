@@ -35,20 +35,20 @@ def load_backend(path):
     return cls()
 
 
-def get_backends():
+def get_backends(MY_BACKENDS=NOTIFICATION_BACKENDS):
     slugs = []
-    if not BACKENDS:
-        for backend_path in NOTIFICATION_BACKENDS:
-            backend  = load_backend(backend_path)
+    BACKENDS = []
+    for backend_path in MY_BACKENDS:
+        backend  = load_backend(backend_path)
 
-            if backend.slug in slugs:
-                raise ImproperlyConfigured("Notification backend `slug` %s is not unique between %s and %s." %  (
-                    backend.slug, 
-                    type(get_backend(backend.slug)), 
-                    type(backend)))
-            else:
-                slugs.append(backend.slug)
-                BACKENDS.append(backend)
+        if backend.slug in slugs:
+            raise ImproperlyConfigured("Notification backend `slug` %s is not unique between %s and %s." %  (
+                backend.slug,
+                type(get_backend(backend.slug)),
+                type(backend)))
+        else:
+            slugs.append(backend.slug)
+            BACKENDS.append(backend)
     return BACKENDS
 
 

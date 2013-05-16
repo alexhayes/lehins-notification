@@ -1,11 +1,10 @@
-from django.conf import settings
-from django.core.mail import send_mail, EmailMultiAlternatives
 from django.utils.translation import ugettext_lazy as _
 
 from notification.backends.base import NotificationBackend
-from HTMLParser import HTMLParser
-from push_notifications import APNSDevice, GCMDevice
+from push_notifications.models import APNSDevice, GCMDevice
+
 import json
+import copy
 
 class MobileBackend(NotificationBackend):
     """
@@ -29,8 +28,15 @@ class MobileBackend(NotificationBackend):
     def send(self, message, recipients, *args, **kwargs):
         msg = message['message.txt']
         devices = self.get_devices(recipients)
+        json_msg = json.loads(msg)
+        
         for dev in devices:
-            dev.send_message(msg)
-
+            msg_dev = copy.copy(json_msg)
+            if isinstance(dev, APNSDevice):
+                del msg_dev['msg']
+            else:
+                del msg_dev['aps']
+                
+            dev.send_message(msg_dev)
         return True
 
