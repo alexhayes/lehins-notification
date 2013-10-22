@@ -199,23 +199,17 @@ def mark_all_seen(request):
     Mark all unseen notices for the requesting user as seen.  Returns a
     ``HttpResponseRedirect`` when complete. 
     """
-    
-    for notice in Notice.objects.notices_for(request.user, unseen=True):
-        notice.unseen = False
-        notice.save()
+    Notice.objects.notices_for(request.user, unseen=True).update(unseen=False)
     return HttpResponseRedirect(reverse("notification_notices"))
 
 @login_required
 def mark_seen(request, id):
     """
-    Mark all unseen notices for the requesting user as seen.  Returns a
+    Mark a single notice for the requesting user as seen.  Returns a
     ``HttpResponseRedirect`` when complete. 
     """
-    notice = get_object_or_404(Notice, id=id)
-    if notice.recipient == request.user: # Ensure Model.__eq__ checks if request.user isinstance notice.recipient 
-        if mark_seen and notice.unseen:
-            notice.unseen = False
-            notice.save()
-        return HttpResponse()
-        return HttpResponseRedirect(reverse("notification_notices"))
-    raise Http404
+    notice = get_object_or_404(Notice, id=id, recipient=request.user)
+    if notice.unseen:
+        notice.unseen = False
+        notice.save()
+    return HttpResponseRedirect(reverse("notification_notices"))
